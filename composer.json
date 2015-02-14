@@ -1,0 +1,30 @@
+{
+	"name" : "realejo/zf2-base",
+	"description" : "Base para projetos ZF2.",
+	"require" : {
+		"php": ">=5.3.23",
+		"zendframework/zendframework" : "2.3.*"
+	},
+	"require-dev": {
+		"phpunit/PHPUnit": "3.7.*"
+	},
+	"keywords": [
+		"framework",
+        "zf2",
+        "mapper",
+        "realejo"
+	],
+	"autoload": {
+		"psr-0": {
+			"Realejo\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-0": {
+            "RealejoTest\\": "tests/"
+        }
+    },
+	"type" : "library",
+	"license" : "Unlicense",
+	"homepage" : "http://realejo.com.br"
+}

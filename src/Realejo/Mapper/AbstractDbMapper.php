@@ -4,10 +4,13 @@ namespace Realejo\Mapper;
 use Zend\Db\TableGateway\Feature\GlobalAdapterFeature;
 use Zend\Db\Adapter\Adapter;
 use Zend\Db\TableGateway\TableGateway;
-use Zend\Paginator\Adapter\DbSelect;
-use Realejo\Cache;
 use Zend\Stdlib\Hydrator\ClassMethods;
 use Zend\Stdlib\Hydrator\HydratorInterface;
+use Zend\Paginator\Paginator;
+use Zend\Paginator\Adapter\DbSelect as PaginatorDbAdapter;
+
+use Realejo\Cache;
+use Realejo\Mapper\PaginatorConfig;
 
 class AbstractDbMapper
 {
@@ -18,6 +21,13 @@ class AbstractDbMapper
      * @var boolean
      */
     protected $useCache = false;
+
+    /**
+     * Define de deve usar o paginator
+     *
+     * @var boolean
+     */
+    private $usePaginator = false;
 
     /**
      * Define a tabela a ser usada
@@ -110,71 +120,11 @@ class AbstractDbMapper
     private $_cache;
 
     /**
-     * Se o nome da tabela e a chave não estiverem hardcoded é preciso informar
+     * Não pode ser usado dentro do Loader pois cada classe tem configurações diferentes
      *
-     * @param string $table
-     *            OPCIONAL. Nome da tabela
-     * @param string $key
-     *            OPCIONAL. Chave da tabela
-     * @param string $dbAdapter
-     *            OPCIONAL .Adapter a ser usado. Se não informado será usado o padrão
-     * @throws \Exception
+     * @var \Realejo\Mapper\PaginatorConfig
      */
-    public function __construct($table = null, $key = null, $dbAdapter = null)
-    {
-        // Verifica o nome da tabela
-        if (empty($table) && ! is_string($table)) {
-            if (isset($this->table)) {
-                $table = $this->table;
-            } else {
-                throw new \Exception('Nome da tabela inválido');
-            }
-        }
-
-        // Verifica o nome da chave
-        if (empty($key) && ! is_string($key)) {
-            if (isset($this->key)) {
-                $key = $this->key;
-            } else {
-                throw new \Exception('Nome da chave inválido');
-            }
-        }
-
-        // Define a chave e o nome da tabela
-        $this->key = $key;
-        $this->table = $table;
-
-        // Define o adapter padrão
-        if (! empty($dbAdapter)) {
-            if ($dbAdapter instanceof Adapter) {
-                $this->_dbAdapter = $dbAdapter;
-            } else {
-                throw new \Exception('Adapter deve ser Zend\Db\Adapter\AdapterInterface');
-            }
-        }
-    }
-
-    /**
-     * Performs some basic initialization setup and checks before running a query
-     * @throws \Exception
-     * @return null
-     */
-    protected function initialize()
-    {
-        if ($this->isInitialized) {
-            return;
-        }
-        if (!$this->dbAdapter instanceof Adapter) {
-            throw new \Exception('No db adapter present');
-        }
-        if (!$this->hydrator instanceof HydratorInterface) {
-            $this->hydrator = new ClassMethods();
-        }
-        if (!is_object($this->entityPrototype)) {
-            throw new \Exception('No entity prototype set');
-        }
-        $this->isInitialized = true;
-    }
+    private $_paginatorConfig;
 
     /**
      *
@@ -198,7 +148,7 @@ class AbstractDbMapper
 
         // Verifica se tem adapter válido
         if (! ($this->_dbAdapter instanceof Adapter)) {
-            throw new \Exception("Adapter dever ser uma instancia de AdapterInterface");
+            throw new \Exception("Adapter dever ser uma instancia de Adapter");
         }
         $this->_tableGateway = new TableGateway($this->table, $this->_dbAdapter);
 
@@ -289,14 +239,10 @@ class AbstractDbMapper
      * @param int $offset
      *            OPTIONAL Offset
      *
-     * @return Zend_Db_Table_Select
+     * @return \Zend\Db\Sql\Select
      */
     public function getSelect($where = null, $order = null, $count = null, $offset = null)
     {
-        /**
-         *
-         * @var \Zend\Db\Sql\Select
-         */
         $select = $this->getSQLSelect();
 
         // Define a ordem
@@ -385,65 +331,58 @@ class AbstractDbMapper
         }
 
         // Verifica se tem no cache
-        // o Zend_Paginator precisa do Zend_Paginator_Adapter_DbSelect para acessar o cache
-        if ($this->getUseCache() && ! $this->getUsePaginator() && $this->getCache()->hasItem($md5)) {
+        // Se estiver usando o paginador, o cache é controlado pelo Zend\Paginator
+        if ($this->getUseCache() && !$this->getUsePaginator() && $this->getCache()->hasItem($md5)) {
             return $this->getCache()->getItem($md5);
-        } else {
+        }
 
-            /**
-             *
-             * @var \Zend\Db\Sql\Select
-             */
-            $select = $this->getSelect($where, $order, $count, $offset);
+        $select = $this->getSelect($where, $order, $count, $offset);
 
-            // Verifica se deve usar o Paginator
-            if ($this->getUsePaginator()) {
+        // Verifica se deve usar o Paginator
+        if ($this->getUsePaginator()) {
 
-                $paginatorAdapter = new DbSelect(
-                    // our configured select object
-                    $select,
-                    // the adapter to run it against
-                    $this->getTableGateway()->getAdapter());
-                $fetchAll = new Paginator($paginatorAdapter);
+            // Configura o fetchAll com o paginator
+            $fetchAll = new Paginator(new PaginatorDbAdapter(
+                $select,
+                $this->getTableGateway()->getAdapter()
+            ));
 
-                // Verifica se deve usar o cache
-                if ($this->getUseCache()) {
-                    $fetchAll->setCacheEnabled(true)->setCache($this->getCache());
-                }
-
-                // Configura o paginator
-                $fetchAll->setPageRange($this->getPaginator()
-                         ->getPageRange());
-                $fetchAll->setCurrentPageNumber($this->getPaginator()
-                         ->getCurrentPageNumber());
-                $fetchAll->setItemCountPerPage($this->getPaginator()
-                    ->getItemCountPerPage());
-            } else {
-                // Recupera os registros do banco de dados
-                $fetchAll = $this->getTableGateway()->selectWith($select);
-
-                // Verifica se foi localizado algum registro
-                if (! is_null($fetchAll) && count($fetchAll) > 0) {
-                    // Passa o $fetch para array para poder incluir campos extras
-                    $fetchAll = $fetchAll->toArray();
-
-                    // Verifica se deve adicionar campos extras
-                    $fetchAll = $this->getFetchAllExtraFields($fetchAll);
-                } else {
-                    $fetchAll = null;
-                }
-
-                // Grava a consulta no cache
-                if ($this->getUseCache())
-                    $this->getCache()->setItem($md5, $fetchAll);
+            // Verifica se deve usar o cache
+            if ($this->getUseCache()) {
+                $fetchAll->setCacheEnabled(true)->setCache($this->getCache());
             }
 
-            // Some garbage collection
-            unset($select);
+            // Configura o paginator
+            $fetchAll->setPageRange($this->getPaginatorConfig()->getPageRange());
+            $fetchAll->setCurrentPageNumber($this->getPaginatorConfig()->getCurrentPageNumber());
+            $fetchAll->setItemCountPerPage($this->getPaginatorConfig()->getItemCountPerPage());
 
             // retorna o resultado da consulta
             return $fetchAll;
         }
+
+
+        // Recupera os registros do banco de dados
+        $fetchAll = $this->getTableGateway()->selectWith($select);
+
+        // Verifica se foi localizado algum registro
+        if (! is_null($fetchAll) && count($fetchAll) > 0) {
+            // Passa o $fetch para array para poder incluir campos extras
+            $fetchAll = $fetchAll->toArray();
+
+            // Verifica se deve adicionar campos extras
+            $fetchAll = $this->getFetchAllExtraFields($fetchAll);
+        } else {
+            $fetchAll = null;
+        }
+
+        // Grava a consulta no cache
+        if ($this->getUseCache()) {
+            $this->getCache()->setItem($md5, $fetchAll);
+        }
+
+        // retorna o resultado da consulta
+        return $fetchAll;
     }
 
     /**
@@ -522,9 +461,9 @@ class AbstractDbMapper
 
         if (empty($fetchRow)) {
             return 0;
-        } else {
-            return $fetchRow['total'];
         }
+
+        return $fetchRow['total'];
     }
 
     /**
@@ -740,6 +679,8 @@ class AbstractDbMapper
      * Define se deve usar o cache
      *
      * @param boolean $useCache
+     *
+     * @return \Realejo\Mapper\AbstractDbMapper
      */
     public function setUseCache($useCache)
     {
@@ -748,6 +689,69 @@ class AbstractDbMapper
 
         // Mantem a cadeia
         return $this;
+    }
+
+    /**
+     * PAGINATOR
+     * Diferente do cache, se gravar qualquer variável do paginator ele será criado
+     */
+
+    /**
+     * Define a configuração do paginator a ser usado no mapper
+     *
+     * @return \Realejo\Mapper\AbstractDbMapper
+     */
+    public function setPaginatorConfig($paginatorConfig)
+    {
+        if (! $paginatorConfig instanceof PaginatorConfig) {
+            throw new \Exception('Configuração do paginator deve ser do tipo PaginatorConfig');
+        }
+
+        $this->_paginatorConfig = $paginatorConfig;
+
+        $this->usePaginator = true;
+
+        return $this;
+    }
+
+    /**
+     * Retorna a configuração do paginator a ser usado
+     *
+     * @return \Realejo\Mapper\PaginatorConfig
+     */
+    public function getPaginatorConfig()
+    {
+        if (! isset($this->_paginatorConfig)) {
+            $this->_paginatorConfig = new \Realejo\Mapper\PaginatorConfig();
+        }
+
+        $this->usePaginator = true;
+
+        return $this->_paginatorConfig;
+    }
+
+    /**
+     * Define se deve usar o paginator
+     *
+     * @param boolean $usepaginator
+     */
+    public function setUsePaginator($usePaginator)
+    {
+        // Grava o paginator
+        $this->usePaginator = $usePaginator;
+
+        // Mantem a cadeia
+        return $this;
+    }
+
+    /**
+     * Retorna se deve usar o paginator
+     *
+     * @return boolean
+     */
+    public function getUsePaginator()
+    {
+        return $this->usePaginator;
     }
 
     /**

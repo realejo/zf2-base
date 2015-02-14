@@ -1,0 +1,10 @@
+<phpunit bootstrap="./Bootstrap.php">
+    <testsuite name="src">
+        <directory>./RealejoTest</directory>
+    </testsuite>
+    <filter>
+        <whitelist>
+            <directory suffix="Test.php">../src</directory>
+        </whitelist>
+    </filter>
+</phpunit>

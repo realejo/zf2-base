@@ -11,18 +11,18 @@
  */
 namespace Realejo\Mapper;
 
-class Paginator
+class PaginatorConfig
 {
 
-    private $_paginator = array(
-        'PageRange'         => 10,
-        'CurrentPageNumber' => 1,
-        'ItemCountPerPage'  => 10
-    );
+    protected $PageRange = 10;
+
+    protected $CurrentPageNumber = 1;
+
+    protected $ItemCountPerPage  = 10;
 
     public function setPageRange($pageRange)
     {
-        $this->_paginator['PageRange'] = $pageRange;
+        $this->PageRange = $pageRange;
 
         // Mantem a cadeia
         return $this;
@@ -30,7 +30,7 @@ class Paginator
 
     public function setCurrentPageNumber($currentPageNumber)
     {
-        $this->_paginator['CurrentPageNumber'] = $currentPageNumber;
+        $this->CurrentPageNumber = $currentPageNumber;
 
         // Mantem a cadeia
         return $this;
@@ -38,7 +38,7 @@ class Paginator
 
     public function setItemCountPerPage($itemCountPerPage)
     {
-        $this->_paginator['ItemCountPerPage'] = $itemCountPerPage;
+        $this->ItemCountPerPage = $itemCountPerPage;
 
         // Mantem a cadeia
         return $this;
@@ -46,16 +46,16 @@ class Paginator
 
     public function getPageRange()
     {
-        return $this->_paginator['PageRange'];
+        return $this->PageRange;
     }
 
     public function getCurrentPageNumber()
     {
-        return $this->_paginator['CurrentPageNumber'];
+        return $this->CurrentPageNumber;
     }
 
     public function getItemCountPerPage()
     {
-        return $this->_paginator['ItemCountPerPage'];
+        return $this->ItemCountPerPage;
     }
 }

@@ -18,7 +18,6 @@ class PaginatorConfigTest extends \PHPUnit_Framework_TestCase
      */
     private $PaginatorConfig;
 
-
     /**
      * @return Base
      */

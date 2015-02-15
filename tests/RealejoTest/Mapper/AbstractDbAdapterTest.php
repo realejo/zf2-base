@@ -6,10 +6,10 @@
  * @copyright Copyright (c) 2014 Realejo (http://realejo.com.br)
  * @license   http://unlicense.org
  */
-namespace RealejoTest;
+namespace RealejoTest\Mapper;
 
-use Realejo\App\Model\TestDbAdapter,
-    Zend\Db\Adapter\Adapter;
+use Zend\Db\Adapter\Adapter;
+use RealejoTest\BaseTestCase;
 
 class AbstractDbAdapterTest extends BaseTestCase
 {
@@ -94,6 +94,8 @@ class AbstractDbAdapterTest extends BaseTestCase
         parent::setUp();
 
         $this->dropTables()->createTables()->insertDefaultRows();
+
+        $this->TestDbAdapter = new TestDbAdapter();
     }
 
     /**
@@ -102,45 +104,10 @@ class AbstractDbAdapterTest extends BaseTestCase
     protected function tearDown()
     {
         parent::tearDown();
+
         $this->dropTables();
-    }
 
-    /**
-     * @return TestDbAdapter
-     */
-    public function getTestDbAdapter($reset = false)
-    {
-        if ($this->TestDbAdapter === null || $reset === true) {
-            $this->TestDbAdapter = new TestDbAdapter($this->tableName, $this->tableKeyName, $this->getAdapter());
-        }
-        return $this->TestDbAdapter;
-    }
-
-    /**
-     * Construct sem nome da tabela
-     * @expectedException Exception
-     */
-    public function testConstructSemTableName()
-    {
-        new TestDbAdapter(null, $this->tableKeyName);
-    }
-
-    /**
-     * Construct sem nome da chave
-     * @expectedException Exception
-     */
-    public function testConstructSemKeyName()
-    {
-        new TestDbAdapter($this->tableName, null);
-    }
-
-    /**
-     * Constructs the test case copm adapter inválido. Ele deve ser Zend\Db\Adapter\Adapter\AdapterInterface
-     * @expectedException Exception
-     */
-    public function testConstructComAdapterInvalido()
-    {
-        $TestDbAdapter = new TestDbAdapter($this->tableName, $this->tableKeyName, new \PDO('sqlite::memory:'));
+        unset($this->TestDbAdapter);
     }
 
     /**
@@ -148,8 +115,8 @@ class AbstractDbAdapterTest extends BaseTestCase
      */
     public function testCreateTestDbAdapter()
     {
-        $TestDbAdapter = new TestDbAdapter($this->tableName, $this->tableKeyName, $this->getAdapter());
-        $this->assertInstanceOf('Realejo\App\Model\TestDbAdapter', $TestDbAdapter);
+        $TestDbAdapter = new TestDbAdapter();
+        $this->assertInstanceOf('Realejo\Mapper\AbstractDbMapper', $TestDbAdapter);
     }
 
     /**
@@ -166,21 +133,20 @@ class AbstractDbAdapterTest extends BaseTestCase
     public function testOrder()
     {
         // Verifica a ordem padrão
-        $this->assertNull($this->getTestDbAdapter()->getOrder());
+        $this->assertNull($this->TestDbAdapter->getOrder());
 
         // Define uma nova ordem com string
-        $this->getTestDbAdapter()->setOrder('id');
-        $this->assertEquals('id', $this->getTestDbAdapter()->getOrder());
+        $this->TestDbAdapter->setOrder('id');
+        $this->assertEquals('id', $this->TestDbAdapter->getOrder());
 
         // Define uma nova ordem com string
-        $this->getTestDbAdapter()->setOrder('title');
-        $this->assertEquals('title', $this->getTestDbAdapter()->getOrder());
+        $this->TestDbAdapter->setOrder('title');
+        $this->assertEquals('title', $this->TestDbAdapter->getOrder());
 
         // Define uma nova ordem com array
-        $this->getTestDbAdapter()->setOrder(array('id', 'title'));
-        $this->assertEquals(array('id', 'title'), $this->getTestDbAdapter()->getOrder());
+        $this->TestDbAdapter->setOrder(array('id', 'title'));
+        $this->assertEquals(array('id', 'title'), $this->TestDbAdapter->getOrder());
     }
-
 
     /**
      * Tests TestDbAdapter->getWhere()
@@ -189,40 +155,40 @@ class AbstractDbAdapterTest extends BaseTestCase
     {
 
         // Marca pra usar o campo deleted
-        $this->getTestDbAdapter()->setUseDeleted(true);
+        $this->TestDbAdapter->setUseDeleted(true);
 
         // Verifica a ordem padrão
-        $this->assertEquals(array("{$this->tableName}.deleted=0"), $this->getTestDbAdapter()->getWhere());
-        $this->assertEquals(array("{$this->tableName}.deleted=0"), $this->getTestDbAdapter()->getWhere(null));
-        $this->assertEquals(array("{$this->tableName}.deleted=0"), $this->getTestDbAdapter()->getWhere(array()));
-        $this->assertEquals(array("{$this->tableName}.deleted=0"), $this->getTestDbAdapter()->getWhere(''));
-        $this->assertEquals(array("{$this->tableName}.deleted=0"), $this->getTestDbAdapter()->getWhere(0));
+        $this->assertEquals(array("{$this->tableName}.deleted=0"), $this->TestDbAdapter->getWhere());
+        $this->assertEquals(array("{$this->tableName}.deleted=0"), $this->TestDbAdapter->getWhere(null));
+        $this->assertEquals(array("{$this->tableName}.deleted=0"), $this->TestDbAdapter->getWhere(array()));
+        $this->assertEquals(array("{$this->tableName}.deleted=0"), $this->TestDbAdapter->getWhere(''));
+        $this->assertEquals(array("{$this->tableName}.deleted=0"), $this->TestDbAdapter->getWhere(0));
 
-        $this->assertEquals(array("{$this->tableName}.deleted=1"), $this->getTestDbAdapter()->getWhere(array('deleted'=>true)));
-        $this->assertEquals(array("{$this->tableName}.deleted=1"), $this->getTestDbAdapter()->getWhere(array('deleted'=>1)));
-        $this->assertEquals(array("{$this->tableName}.deleted=0"), $this->getTestDbAdapter()->getWhere(array('deleted'=>false)));
-        $this->assertEquals(array("{$this->tableName}.deleted=0"), $this->getTestDbAdapter()->getWhere(array('deleted'=>0)));
+        $this->assertEquals(array("{$this->tableName}.deleted=1"), $this->TestDbAdapter->getWhere(array('deleted'=>true)));
+        $this->assertEquals(array("{$this->tableName}.deleted=1"), $this->TestDbAdapter->getWhere(array('deleted'=>1)));
+        $this->assertEquals(array("{$this->tableName}.deleted=0"), $this->TestDbAdapter->getWhere(array('deleted'=>false)));
+        $this->assertEquals(array("{$this->tableName}.deleted=0"), $this->TestDbAdapter->getWhere(array('deleted'=>0)));
 
         $this->assertEquals(array(
             "outratabela.campo=0",
             "{$this->tableName}.deleted=0"
-        ), $this->getTestDbAdapter()->getWhere(array('outratabela.campo'=>0)));
+        ), $this->TestDbAdapter->getWhere(array('outratabela.campo'=>0)));
 
         $this->assertEquals(array(
                 "outratabela.deleted=1",
                 "{$this->tableName}.deleted=0"
-        ), $this->getTestDbAdapter()->getWhere(array('outratabela.deleted'=>1)));
+        ), $this->TestDbAdapter->getWhere(array('outratabela.deleted'=>1)));
 
         $this->assertEquals(array(
                             "{$this->tableName}.{$this->tableKeyName}=1",
                             "{$this->tableName}.deleted=0"
-        ), $this->getTestDbAdapter()->getWhere(array($this->tableKeyName=>1)));
+        ), $this->TestDbAdapter->getWhere(array($this->tableKeyName=>1)));
 
         $dbExpression = new \Zend\Db\Sql\Expression('now()');
         $this->assertEquals(array(
             $dbExpression,
                 "{$this->tableName}.deleted=0"
-        ), $this->getTestDbAdapter()->getWhere(array($dbExpression)));
+        ), $this->TestDbAdapter->getWhere(array($dbExpression)));
 
     }
 
@@ -232,16 +198,16 @@ class AbstractDbAdapterTest extends BaseTestCase
     public function testDeletedField()
     {
         // Verifica se deve remover o registro
-        $this->assertFalse($this->getTestDbAdapter()->getUseDeleted());
-        $this->assertTrue($this->getTestDbAdapter()->setUseDeleted(true)->getUseDeleted());
-        $this->assertFalse($this->getTestDbAdapter()->setUseDeleted(false)->getUseDeleted());
-        $this->assertFalse($this->getTestDbAdapter()->getUseDeleted());
+        $this->assertFalse($this->TestDbAdapter->getUseDeleted());
+        $this->assertTrue($this->TestDbAdapter->setUseDeleted(true)->getUseDeleted());
+        $this->assertFalse($this->TestDbAdapter->setUseDeleted(false)->getUseDeleted());
+        $this->assertFalse($this->TestDbAdapter->getUseDeleted());
 
         // Verifica se deve mostrar o registro
-        $this->assertFalse($this->getTestDbAdapter()->getShowDeleted());
-        $this->assertFalse($this->getTestDbAdapter()->setShowDeleted(false)->getShowDeleted());
-        $this->assertTrue($this->getTestDbAdapter()->setShowDeleted(true)->getShowDeleted());
-        $this->assertTrue($this->getTestDbAdapter()->getShowDeleted());
+        $this->assertFalse($this->TestDbAdapter->getShowDeleted());
+        $this->assertFalse($this->TestDbAdapter->setShowDeleted(false)->getShowDeleted());
+        $this->assertTrue($this->TestDbAdapter->setShowDeleted(true)->getShowDeleted());
+        $this->assertTrue($this->TestDbAdapter->getShowDeleted());
     }
 
     /**
@@ -250,17 +216,17 @@ class AbstractDbAdapterTest extends BaseTestCase
     public function testGetSQlString()
     {
         // Verfiica o padrão não usar o campo deleted e não mostrar os removidos
-        $this->assertEquals('SELECT `album`.* FROM `album`', $this->getTestDbAdapter()->getSQlString(), 'showDeleted=false, useDeleted=false');
+        $this->assertEquals('SELECT `album`.* FROM `album`', $this->TestDbAdapter->getSQlString(), 'showDeleted=false, useDeleted=false');
 
         // Marca para usar o campo deleted
-        $this->getTestDbAdapter()->setUseDeleted(true);
-        $this->assertEquals('SELECT `album`.* FROM `album` WHERE album.deleted=0', $this->getTestDbAdapter()->getSQlString(), 'showDeleted=false, useDeleted=true');
+        $this->TestDbAdapter->setUseDeleted(true);
+        $this->assertEquals('SELECT `album`.* FROM `album` WHERE album.deleted=0', $this->TestDbAdapter->getSQlString(), 'showDeleted=false, useDeleted=true');
 
         // Marca para não usar o campo deleted
-        $this->getTestDbAdapter()->setUseDeleted(false);
+        $this->TestDbAdapter->setUseDeleted(false);
 
-        $this->assertEquals('SELECT `album`.* FROM `album` WHERE album.id=1234', $this->getTestDbAdapter()->getSQlString(array('id'=>1234)));
-        $this->assertEquals("SELECT `album`.* FROM `album` WHERE album.texto='textotextotexto'", $this->getTestDbAdapter()->getSQlString(array('texto'=>'textotextotexto')));
+        $this->assertEquals('SELECT `album`.* FROM `album` WHERE album.id=1234', $this->TestDbAdapter->getSQlString(array('id'=>1234)));
+        $this->assertEquals("SELECT `album`.* FROM `album` WHERE album.texto='textotextotexto'", $this->TestDbAdapter->getSQlString(array('texto'=>'textotextotexto')));
 
     }
 
@@ -269,9 +235,9 @@ class AbstractDbAdapterTest extends BaseTestCase
      */
     public function testGetSQlSelect()
     {
-        $select = $this->getTestDbAdapter()->getSQlSelect();
+        $select = $this->TestDbAdapter->getSQlSelect();
         $this->assertInstanceOf('Zend\Db\Sql\Select', $select);
-        $this->assertEquals($select->getSqlString($this->getAdapter()->getPlatform()), $this->getTestDbAdapter()->getSQlString());
+        $this->assertEquals($select->getSqlString($this->getAdapter()->getPlatform()), $this->TestDbAdapter->getSQlString());
     }
 
     /**
@@ -281,86 +247,86 @@ class AbstractDbAdapterTest extends BaseTestCase
     {
 
         // O padrão é não usar o campo deleted
-        $albuns = $this->getTestDbAdapter()->fetchAll();
+        $albuns = $this->TestDbAdapter->fetchAll();
         $this->assertCount(4, $albuns, 'showDeleted=false, useDeleted=false');
 
         // Marca para mostrar os removidos e não usar o campo deleted
-        $this->getTestDbAdapter()->setShowDeleted(true)->setUseDeleted(false);
-        $this->assertCount(4, $this->getTestDbAdapter()->fetchAll(), 'showDeleted=true, useDeleted=false');
+        $this->TestDbAdapter->setShowDeleted(true)->setUseDeleted(false);
+        $this->assertCount(4, $this->TestDbAdapter->fetchAll(), 'showDeleted=true, useDeleted=false');
 
         // Marca pra não mostar os removidos e usar o campo deleted
-        $this->getTestDbAdapter()->setShowDeleted(false)->setUseDeleted(true);
-        $this->assertCount(3, $this->getTestDbAdapter()->fetchAll(), 'showDeleted=false, useDeleted=true');
+        $this->TestDbAdapter->setShowDeleted(false)->setUseDeleted(true);
+        $this->assertCount(3, $this->TestDbAdapter->fetchAll(), 'showDeleted=false, useDeleted=true');
 
         // Marca pra mostrar os removidos e usar o campo deleted
-        $this->getTestDbAdapter()->setShowDeleted(true)->setUseDeleted(true);
-        $albuns = $this->getTestDbAdapter()->fetchAll();
+        $this->TestDbAdapter->setShowDeleted(true)->setUseDeleted(true);
+        $albuns = $this->TestDbAdapter->fetchAll();
         $this->assertCount(4, $albuns, 'showDeleted=true, useDeleted=true');
 
         // Marca não mostrar os removios
-        $this->getTestDbAdapter()->setShowDeleted(false);
+        $this->TestDbAdapter->setShowDeleted(false);
 
         $albuns = $this->defaultValues;
         unset($albuns[3]); // remove o deleted=1
-        $this->assertEquals($albuns, $this->getTestDbAdapter()->fetchAll());
+        $this->assertEquals($albuns, $this->TestDbAdapter->fetchAll());
 
         // Marca mostrar os removios
-        $this->getTestDbAdapter()->setShowDeleted(true);
+        $this->TestDbAdapter->setShowDeleted(true);
 
-        $this->assertEquals($this->defaultValues, $this->getTestDbAdapter()->fetchAll());
-        $this->assertCount(4, $this->getTestDbAdapter()->fetchAll());
-        $this->getTestDbAdapter()->setShowDeleted(false);
-        $this->assertCount(3, $this->getTestDbAdapter()->fetchAll());
+        $this->assertEquals($this->defaultValues, $this->TestDbAdapter->fetchAll());
+        $this->assertCount(4, $this->TestDbAdapter->fetchAll());
+        $this->TestDbAdapter->setShowDeleted(false);
+        $this->assertCount(3, $this->TestDbAdapter->fetchAll());
 
         // Verifica o where
-        $this->assertCount(2, $this->getTestDbAdapter()->fetchAll(array('artist'=>$albuns[0]['artist'])));
-        $this->assertNull($this->getTestDbAdapter()->fetchAll(array('artist'=>$this->defaultValues[3]['artist'])));
+        $this->assertCount(2, $this->TestDbAdapter->fetchAll(array('artist'=>$albuns[0]['artist'])));
+        $this->assertNull($this->TestDbAdapter->fetchAll(array('artist'=>$this->defaultValues[3]['artist'])));
 
         // Verifica o paginator com o padrão
-        $paginator = $this->getTestDbAdapter()->setUsePaginator(true)->fetchAll();
+        $paginator = $this->TestDbAdapter->setUsePaginator(true)->fetchAll();
         $paginator = $paginator->toJson();
-        $fetchAll = $this->getTestDbAdapter()->setUsePaginator(false)->fetchAll();
+        $fetchAll = $this->TestDbAdapter->setUsePaginator(false)->fetchAll();
         $this->assertNotEquals(json_encode($this->defaultValues), $paginator);
         $this->assertEquals(json_encode($fetchAll), $paginator);
 
         // Verifica o paginator alterando o paginator
-        $this->getTestDbAdapter()->getPaginator()->setPageRange(2)
+        $this->TestDbAdapter->getPaginatorConfig()->setPageRange(2)
                                         ->setCurrentPageNumber(1)
                                         ->setItemCountPerPage(2);
-        $paginator = $this->getTestDbAdapter()->setUsePaginator(true)->fetchAll();
+        $paginator = $this->TestDbAdapter->setUsePaginator(true)->fetchAll();
         $paginator = $paginator->toJson();
         $this->assertNotEquals(json_encode($this->defaultValues), $paginator);
-        $fetchAll = $this->getTestDbAdapter()->setUsePaginator(false)->fetchAll(null, null, 2);
+        $fetchAll = $this->TestDbAdapter->setUsePaginator(false)->fetchAll(null, null, 2);
         $this->assertEquals(json_encode($fetchAll), $paginator);
 
         // Apaga qualquer cache
-        $this->assertTrue($this->getTestDbAdapter()->getCache()->flush(), 'apaga o cache');
+        $this->assertTrue($this->TestDbAdapter->getCache()->flush(), 'apaga o cache');
 
         // Define exibir os delatados
-        $this->getTestDbAdapter()->setShowDeleted(true);
+        $this->TestDbAdapter->setShowDeleted(true);
 
         // Liga o cache
-        $this->getTestDbAdapter()->setUseCache(true);
-        $this->assertEquals($this->defaultValues, $this->getTestDbAdapter()->fetchAll(), 'Igual');
-        $this->assertCount(4, $this->getTestDbAdapter()->fetchAll(), 'Deve conter 4 registros 1');
+        $this->TestDbAdapter->setUseCache(true);
+        $this->assertEquals($this->defaultValues, $this->TestDbAdapter->fetchAll(), 'Igual');
+        $this->assertCount(4, $this->TestDbAdapter->fetchAll(), 'Deve conter 4 registros 1');
 
         // Grava um registro "sem o cache saber"
-        $this->getTestDbAdapter()->getTableGateway()->insert(array('id'=>10, 'artist'=>'nao existo por enquanto', 'title'=>'bla bla', 'deleted' => 0));
+        $this->TestDbAdapter->getTableGateway()->insert(array('id'=>10, 'artist'=>'nao existo por enquanto', 'title'=>'bla bla', 'deleted' => 0));
 
-        $this->assertCount(4, $this->getTestDbAdapter()->fetchAll(), 'Deve conter 4 registros 2');
-        $this->assertTrue($this->getTestDbAdapter()->getCache()->flush(), 'apaga o cache');
-        $this->assertCount(5, $this->getTestDbAdapter()->fetchAll(), 'Deve conter 5 registros');
+        $this->assertCount(4, $this->TestDbAdapter->fetchAll(), 'Deve conter 4 registros 2');
+        $this->assertTrue($this->TestDbAdapter->getCache()->flush(), 'apaga o cache');
+        $this->assertCount(5, $this->TestDbAdapter->fetchAll(), 'Deve conter 5 registros');
 
         // Define não exibir os deletados
-        $this->getTestDbAdapter()->setShowDeleted(false);
-        $this->assertCount(4, $this->getTestDbAdapter()->fetchAll(), 'Deve conter 4 registros 3');
+        $this->TestDbAdapter->setShowDeleted(false);
+        $this->assertCount(4, $this->TestDbAdapter->fetchAll(), 'Deve conter 4 registros 3');
 
         // Apaga um registro "sem o cache saber"
-        $this->getTestDbAdapter()->getTableGateway()->delete(array("id"=>10));
-        $this->getTestDbAdapter()->setShowDeleted(true);
-        $this->assertCount(5, $this->getTestDbAdapter()->fetchAll(), 'Deve conter 5 registros');
-        $this->assertTrue($this->getTestDbAdapter()->getCache()->flush(), 'apaga o cache');
-        $this->assertCount(4, $this->getTestDbAdapter()->fetchAll(), 'Deve conter 4 registros 4');
+        $this->TestDbAdapter->getTableGateway()->delete(array("id"=>10));
+        $this->TestDbAdapter->setShowDeleted(true);
+        $this->assertCount(5, $this->TestDbAdapter->fetchAll(), 'Deve conter 5 registros');
+        $this->assertTrue($this->TestDbAdapter->getCache()->flush(), 'apaga o cache');
+        $this->assertCount(4, $this->TestDbAdapter->fetchAll(), 'Deve conter 4 registros 4');
 
     }
 
@@ -370,19 +336,19 @@ class AbstractDbAdapterTest extends BaseTestCase
     public function testFetchRow()
     {
         // Marca pra usar o campo deleted
-        $this->getTestDbAdapter()->setUseDeleted(true);
+        $this->TestDbAdapter->setUseDeleted(true);
 
         // Verifica os itens que existem
-        $this->assertEquals($this->defaultValues[0], $this->getTestDbAdapter()->fetchRow(1));
-        $this->assertEquals($this->defaultValues[1], $this->getTestDbAdapter()->fetchRow(2));
-        $this->assertEquals($this->defaultValues[2], $this->getTestDbAdapter()->fetchRow(3));
+        $this->assertEquals($this->defaultValues[0], $this->TestDbAdapter->fetchRow(1));
+        $this->assertEquals($this->defaultValues[1], $this->TestDbAdapter->fetchRow(2));
+        $this->assertEquals($this->defaultValues[2], $this->TestDbAdapter->fetchRow(3));
 
         // Verifica o item removido
-        $this->assertNull($this->getTestDbAdapter()->fetchRow(4));
-        $this->getTestDbAdapter()->setShowDeleted(true);
-        $this->assertEquals($this->defaultValues[3], $this->getTestDbAdapter()->fetchRow(4));
-        $this->getTestDbAdapter()->setShowDeleted(false);
-        $this->assertNull($this->getTestDbAdapter()->fetchRow(4));
+        $this->assertNull($this->TestDbAdapter->fetchRow(4));
+        $this->TestDbAdapter->setShowDeleted(true);
+        $this->assertEquals($this->defaultValues[3], $this->TestDbAdapter->fetchRow(4));
+        $this->TestDbAdapter->setShowDeleted(false);
+        $this->assertNull($this->TestDbAdapter->fetchRow(4));
     }
 
     /**
@@ -391,7 +357,7 @@ class AbstractDbAdapterTest extends BaseTestCase
     public function testFetchAssoc()
     {
         // O padrão é não usar o campo deleted
-        $albuns = $this->getTestDbAdapter()->fetchAssoc();
+        $albuns = $this->TestDbAdapter->fetchAssoc();
         $this->assertCount(4, $albuns, 'showDeleted=false, useDeleted=false');
         $this->assertEquals($this->defaultValues[0], $albuns[1]);
         $this->assertEquals($this->defaultValues[1], $albuns[2]);
@@ -399,23 +365,22 @@ class AbstractDbAdapterTest extends BaseTestCase
         $this->assertEquals($this->defaultValues[3], $albuns[4]);
 
         // Marca para mostrar os removidos e não usar o campo deleted
-        $this->getTestDbAdapter()->setShowDeleted(true)->setUseDeleted(false);
-        $this->assertCount(4, $this->getTestDbAdapter()->fetchAssoc(), 'showDeleted=true, useDeleted=false');
+        $this->TestDbAdapter->setShowDeleted(true)->setUseDeleted(false);
+        $this->assertCount(4, $this->TestDbAdapter->fetchAssoc(), 'showDeleted=true, useDeleted=false');
 
         // Marca pra não mostar os removidos e usar o campo deleted
-        $this->getTestDbAdapter()->setShowDeleted(false)->setUseDeleted(true);
-        $this->assertCount(3, $this->getTestDbAdapter()->fetchAssoc(), 'showDeleted=false, useDeleted=true');
+        $this->TestDbAdapter->setShowDeleted(false)->setUseDeleted(true);
+        $this->assertCount(3, $this->TestDbAdapter->fetchAssoc(), 'showDeleted=false, useDeleted=true');
 
         // Marca pra mostrar os removidos e usar o campo deleted
-        $this->getTestDbAdapter()->setShowDeleted(true)->setUseDeleted(true);
-        $albuns = $this->getTestDbAdapter()->fetchAssoc();
+        $this->TestDbAdapter->setShowDeleted(true)->setUseDeleted(true);
+        $albuns = $this->TestDbAdapter->fetchAssoc();
         $this->assertCount(4, $albuns, 'showDeleted=true, useDeleted=true');
         $this->assertEquals($this->defaultValues[0], $albuns[1]);
         $this->assertEquals($this->defaultValues[1], $albuns[2]);
         $this->assertEquals($this->defaultValues[2], $albuns[3]);
         $this->assertEquals($this->defaultValues[3], $albuns[4]);
     }
-
 
     /**
      * Tests TestDbAdapter->getFetchAllExtraFields()
@@ -455,11 +420,17 @@ class AbstractDbAdapterTest extends BaseTestCase
      */
     public function testGetTableGetKey()
     {
-        $TestDbAdapter = new TestDbAdapter('tablename', 'keyname');
+        $TestDbAdapter = new TestDbAdapter();
         $this->assertNotNull($TestDbAdapter->getTable());
         $this->assertNotNull($TestDbAdapter->getKey());
-        $this->assertEquals('tablename', $TestDbAdapter->getTable());
-        $this->assertEquals('keyname', $TestDbAdapter->getKey());
+        $this->assertEquals('album', $TestDbAdapter->getTable());
+        $this->assertEquals('id', $TestDbAdapter->getKey());
+
+        $TestDbAdapter->setTable('outro table');
+        $this->assertEquals('outro table', $TestDbAdapter->getTable());
+
+        $TestDbAdapter->setKey('another key');
+        $this->assertEquals('another key', $TestDbAdapter->getKey());
 
         /*
         // @todo permitir chaves compostas
@@ -520,65 +491,27 @@ class AbstractDbAdapterTest extends BaseTestCase
      */
     public function testGetCache()
     {
-        // TODO Auto-generated TestDbAdapterTest->testGetCache()
-        $this->markTestIncomplete("getCache test not implemented");
-
-        $this->TestDbAdapter->getCache(/* parameters */);
+        $this->assertInstanceOf('\Zend\Cache\Storage\Adapter\Filesystem', $this->TestDbAdapter->getCache());
+        $this->assertInstanceOf('\Zend\Cache\Storage\Adapter\AbstractAdapter', $this->TestDbAdapter->getCache());
     }
 
     /**
      * Tests TestDbAdapter->setUseCache()
      */
-    public function testSetUseCache()
+    public function testGettersSetters()
     {
-        // TODO Auto-generated TestDbAdapterTest->testSetUseCache()
-        $this->markTestIncomplete("setUseCache test not implemented");
+        $this->assertFalse($this->TestDbAdapter->getUseCache());
+        $this->TestDbAdapter->setUseCache(true);
+        $this->assertTrue($this->TestDbAdapter->getUseCache());
+        $this->TestDbAdapter->setUseCache(false);
+        $this->assertFalse($this->TestDbAdapter->getUseCache());
 
-        $this->TestDbAdapter->setUseCache(/* parameters */);
-    }
+        $this->assertFalse($this->TestDbAdapter->getUsePaginator());
+        $this->TestDbAdapter->setUsePaginator(true);
+        $this->assertTrue($this->TestDbAdapter->getUsePaginator());
+        $this->TestDbAdapter->setUsePaginator(false);
+        $this->assertFalse($this->TestDbAdapter->getUsePaginator());
 
-    /**
-     * Tests TestDbAdapter->getUseCache()
-     */
-    public function testGetUseCache()
-    {
-        // TODO Auto-generated TestDbAdapterTest->testGetUseCache()
-        $this->markTestIncomplete("getUseCache test not implemented");
-
-        $this->TestDbAdapter->getUseCache(/* parameters */);
-    }
-
-    /**
-     * Tests TestDbAdapter->getPaginator()
-     */
-    public function testGetPaginator()
-    {
-        // TODO Auto-generated TestDbAdapterTest->testGetPaginator()
-        $this->markTestIncomplete("getPaginator test not implemented");
-
-        $this->TestDbAdapter->getPaginator(/* parameters */);
-    }
-
-    /**
-     * Tests TestDbAdapter->setUsePaginator()
-     */
-    public function testSetUsePaginator()
-    {
-        // TODO Auto-generated TestDbAdapterTest->testSetUsePaginator()
-        $this->markTestIncomplete("setUsePaginator test not implemented");
-
-        $this->TestDbAdapter->setUsePaginator(/* parameters */);
-    }
-
-    /**
-     * Tests TestDbAdapter->getUsePaginator()
-     */
-    public function testGetUsePaginator()
-    {
-        // TODO Auto-generated TestDbAdapterTest->testGetUsePaginator()
-        $this->markTestIncomplete("getUsePaginator test not implemented");
-
-        $this->TestDbAdapter->getUsePaginator(/* parameters */);
+        $this->assertInstanceOf('Realejo\Mapper\PaginatorConfig', $this->TestDbAdapter->getPaginatorConfig());
     }
 }
-

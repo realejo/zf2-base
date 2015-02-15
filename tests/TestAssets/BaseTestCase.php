@@ -41,7 +41,7 @@ class BaseTestCase extends \PHPUnit_Framework_TestCase
             // Receupera as configurações do banco de dados
             $config = TEST_ROOT . '/configs/db.php';
             if (!file_exists($config)) {
-                $this->fail("Arquivo de configuração do banco de dados $config não encontrado.");
+                $this->fail("Arquivo de configuração do banco de dados tests/configs/db.php não encontrado.");
             }
             $this->adapter = new \Zend\Db\Adapter\Adapter(require $config);
 

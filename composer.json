@@ -1,22 +1,22 @@
 {
-	"name" : "realejo/zf2-base",
-	"description" : "Base para projetos ZF2.",
-	"require" : {
-		"php": ">=5.3.23",
-		"zendframework/zendframework" : "2.3.*"
-	},
-	"require-dev": {
-		"phpunit/PHPUnit": "3.7.*"
-	},
-	"keywords": [
-		"framework",
+    "name": "realejo/zf2-base",
+    "description": "Base para projetos ZF2.",
+    "require": {
+        "php": ">=5.3.23",
+        "zendframework/zendframework": "2.3.*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "3.7.*"
+    },
+    "keywords": [
+        "framework",
         "zf2",
         "mapper",
         "realejo"
-	],
-	"autoload": {
-		"psr-0": {
-			"Realejo\\": "src/"
+    ],
+    "autoload": {
+        "psr-0": {
+            "Realejo\\": "src/"
         }
     },
     "autoload-dev": {
@@ -24,7 +24,7 @@
             "RealejoTest\\": "tests/"
         }
     },
-	"type" : "library",
-	"license" : "Unlicense",
-	"homepage" : "http://realejo.com.br"
+    "type": "library",
+    "license": "Unlicense",
+    "homepage": "https://realejo.com.br"
 }
